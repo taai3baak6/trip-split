@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trip Split</title>
+<style>
+  :root{
+    --navy: #1B2138;
+    --navy-light: #2B3255;
+    --gold: #C9A227;
+    --gold-light: #E8D9A8;
+    --paper: #F7F5F0;
+    --card: #FFFFFF;
+    --line: #E4E0D6;
+    --text: #262A3B;
+    --text-muted: #6B6E7E;
+    --error: #B3453D;
+    --error-bg: #FBEAE8;
+    --success: #4C7A67;
+    --success-bg: #E9F2EE;
+    --warn: #8A5A00;
+    --warn-bg: #FBF1DC;
+    --radius: 10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background:var(--paper);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family: Georgia, "Iowan Old Style", "Times New Roman", serif; font-weight:600; margin:0;}
+  .app{max-width:760px;margin:0 auto;padding:24px 20px 20px;}
+  footer.credit{
+    max-width:760px;margin:20px auto 0;padding:18px 20px 40px;text-align:center;
+    border-top:1px solid var(--line);
+  }
+  footer.credit .credit-name{ font-family: Georgia, "Iowan Old Style", serif; font-size:13px; color:var(--navy); font-weight:600; letter-spacing:0.5px; }
+  footer.credit .credit-dot{ color:var(--gold); margin:0 9px; font-size:10px; }
+  footer.credit .credit-handle{ font-size:11px; color:var(--text-muted); letter-spacing:1.2px; text-transform:uppercase; }
+  header.top{
+    display:flex; align-items:center; justify-content:space-between;
+    padding-bottom:18px; margin-bottom:10px; border-bottom:1px solid var(--line);
+    flex-wrap:wrap; gap:10px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand .mark{
+    width:34px;height:34px;border-radius:8px;background:var(--navy);
+    display:flex;align-items:center;justify-content:center;color:var(--gold);
+    font-family:Georgia,serif;font-weight:700;font-size:16px;
+  }
+  .brand h1{font-size:20px;color:var(--navy);}
+  select, input, button, textarea{ font-family:inherit; font-size:14px; }
+  select#projectSelect{
+    padding:8px 10px; border-radius:8px; border:1px solid var(--line);
+    background:var(--card); color:var(--text); max-width:180px;
+  }
+  .btn{ padding:9px 16px; border-radius:8px; border:1px solid var(--navy); background:var(--navy); color:#fff; cursor:pointer; font-weight:600; }
+  .btn:hover{background:var(--navy-light);}
+  .btn.secondary{background:transparent;color:var(--navy);border:1px solid var(--line);font-weight:500;}
+  .btn.secondary:hover{border-color:var(--navy);}
+  .btn.danger{background:transparent;color:var(--error);border:1px solid var(--error);font-weight:500;padding:6px 12px;font-size:13px;}
+  .btn.danger-solid{background:var(--error);color:#fff;border:1px solid var(--error);font-weight:600;}
+  .btn.danger-solid:hover{background:#8f342d;}
+  .danger-zone{border-color:var(--error-bg);background:#FFFBFA;}
+  .btn.small{padding:6px 12px;font-size:13px;}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+
+  .empty-state{text-align:center; padding:60px 20px; color:var(--text-muted);}
+  .empty-state h2{color:var(--navy);margin-bottom:8px;font-size:19px;}
+  .empty-state p{margin:0 0 20px;font-size:14px;}
+
+  .tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid var(--line);overflow-x:auto;}
+  .tab{ padding:10px 12px; cursor:pointer; font-size:13px; color:var(--text-muted); border-bottom:2px solid transparent; font-weight:500; white-space:nowrap; }
+  .tab.active{color:var(--navy);border-bottom-color:var(--gold);}
+
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:16px; }
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:13px;color:var(--text-muted);margin-bottom:5px;font-weight:500;}
+  .field input, .field select{ width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--text); }
+  .field input:focus, .field select:focus{outline:2px solid var(--gold-light);border-color:var(--gold);}
+  .field input:disabled{background:#F3F1EA;color:var(--text-muted);}
+  .field .hint{font-size:11px;color:var(--text-muted);margin-top:4px;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  .toggle-group{display:flex;gap:8px;flex-wrap:wrap;}
+  .toggle-btn{ flex:1; min-width:90px; padding:9px; text-align:center; border:1px solid var(--line); border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; color:var(--text-muted); background:#fff; }
+  .toggle-btn.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+  .member-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);}
+  .member-row:last-child{border-bottom:none;}
+  .member-name{font-size:14px;}
+  .avatar{ width:26px;height:26px;border-radius:50%;background:var(--gold-light);color:#5c4a0d; display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-right:8px;flex-shrink:0; }
+  .add-member-row{display:flex;gap:8px;margin-top:12px;}
+  .add-member-row input{flex:1;}
+
+  .split-member-row{display:flex;align-items:center;gap:10px;padding:6px 0;}
+  .split-member-row .name{width:100px;font-size:13px;flex-shrink:0;}
+  .split-member-row input{width:100px;padding:7px 8px;border:1px solid var(--line);border-radius:6px;}
+  .adjustment-row{display:flex;align-items:center;gap:8px;padding:5px 0;}
+  .adjustment-row input[type="number"], .adjustment-row input[type="text"]{padding:7px 8px;border:1px solid var(--line);border-radius:6px;}
+  .adjustment-row .toggle-btn{border-radius:6px;font-size:14px;}
+  .split-summary{ display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;margin-top:6px; border-top:1px solid var(--line);font-size:13px;font-weight:600; }
+  .banner{padding:10px 12px;border-radius:8px;font-size:13px;margin:10px 0;font-weight:500;}
+  .banner.error{background:var(--error-bg);color:var(--error);}
+  .banner.success{background:var(--success-bg);color:var(--success);}
+  .banner.warn{background:var(--warn-bg);color:var(--warn);}
+
+  .cat-pill{display:inline-block;padding:2px 8px;border-radius:20px;background:var(--gold-light);color:#5c4a0d;font-size:11px;font-weight:600;}
+  .badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:600;}
+  .badge.service{background:#E9F2EE;color:var(--success);}
+  .badge.taxfree{background:#E6F0F7;color:#28516E;}
+  .badge.pending{background:var(--warn-bg);color:var(--warn);}
+  .badge.method{background:#EFEDE6;color:var(--text-muted);}
+
+  .expense-card{border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px;background:#fff;}
+  .expense-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .expense-card-title{font-weight:600;font-size:14px;}
+  .expense-card-date{font-size:12px;color:var(--text-muted);}
+  .expense-card-amount{font-size:16px;font-weight:700;color:var(--navy);white-space:nowrap;}
+  .expense-card-meta{font-size:12px;color:var(--text-muted);margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .paid-back-list{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
+  .paid-back-item{display:flex;align-items:center;gap:5px;font-size:12px;}
+  .paid-back-item input{width:15px;height:15px;}
+  .row-actions{display:flex;gap:12px;margin-top:10px;}
+  .icon-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:12px;padding:0;text-decoration:underline;}
+  .icon-btn:hover{color:var(--navy);}
+
+  .balance-card{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;background:#fff;}
+  .balance-name{font-weight:600;font-size:14px;display:flex;align-items:center;}
+  .balance-amt{font-size:14px;font-weight:600;text-align:right;}
+  .balance-amt .home{display:block;font-size:12px;font-weight:500;color:var(--text-muted);}
+  .balance-amt.positive{color:var(--success);}
+  .balance-amt.negative{color:var(--error);}
+  .balance-amt.zero{color:var(--text-muted);}
+
+  .settlement-item{padding:8px 0;font-size:13px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+  .settlement-item:last-child{border-bottom:none;}
+  .settlement-item b{color:var(--navy);}
+  .settlement-item .home-amt{font-size:12px;color:var(--text-muted);}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;}
+  .stat-card{background:var(--navy);color:#fff;border-radius:10px;padding:14px 16px;}
+  .stat-card .label{font-size:12px;color:var(--gold-light);margin-bottom:4px;}
+  .stat-card .value{font-size:20px;font-weight:600;}
+
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0 4px;font-size:12px;color:var(--text-muted);}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .legend i{width:9px;height:9px;border-radius:2px;display:inline-block;}
+
+  .settings-block{margin-bottom:22px;}
+  .settings-block:last-child{margin-bottom:0;}
+  .settings-block h3{margin-bottom:12px;}
+  .cat-chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+  .cat-chip{display:flex;align-items:center;gap:6px;background:var(--gold-light);color:#5c4a0d;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;}
+  .cat-chip button{background:none;border:none;cursor:pointer;color:#5c4a0d;font-weight:700;font-size:13px;padding:0;line-height:1;}
+  .rate-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;}
+  .rate-row:last-child{border-bottom:none;}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(27,33,56,0.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .modal{background:#fff;border-radius:12px;padding:22px;max-width:400px;width:100%;max-height:85vh;overflow-y:auto;}
+  .modal h3{margin-bottom:14px;font-size:16px;color:var(--navy);}
+
+  .loading{text-align:center;padding:60px;color:var(--text-muted);font-size:14px;}
+  .empty-hint{font-size:13px;color:var(--text-muted);text-align:center;padding:24px 0;}
+
+  @media (max-width:520px){
+    .two-col,.three-col{grid-template-columns:1fr;}
+    .stat-grid{grid-template-columns:1fr;}
+    .brand h1{font-size:17px;}
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="loading" id="loading">Loading your trips...</div>
+</div>
+<footer class="credit"><span class="credit-name">太白</span><span class="credit-dot">•</span><span class="credit-handle">taai3baak6</span></footer>
+
+<!-- Only used for the optional "Export to Excel" button. deferred so it never blocks the app
+     from loading when offline — everything else in this file works with zero internet access. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+
+<script>
+(function(){
+
+const CATEGORY_COLORS = ['#C9A227','#1B2138','#8A5A44','#4C7A67','#7E6A9C','#B3453D','#5B7A8C','#3E6E8C'];
+const DEFAULT_CATEGORIES = ['Food','Transport','Accommodation','Shopping','Activities','Other'];
+const DEFAULT_PAYMENT_METHODS = ['Cash','Card'];
+
+let state = {
+  projects: [],
+  currentProjectId: null,
+  currentProject: null,
+  activeTab: 'add',
+  editingExpenseId: null,
+  formError: '',
+  draft: null,
+  joinError: ''
+};
+
+async function safeGet(key){
+  try{ const v = localStorage.getItem(key); return v!==null ? JSON.parse(v) : null; }
+  catch(e){ return null; }
+}
+async function safeSet(key, value){
+  try{ localStorage.setItem(key, JSON.stringify(value)); return true; }
+  catch(e){ return false; }
+}
+async function safeDelete(key){ try{ localStorage.removeItem(key); }catch(e){} }
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function fmt(n){
+  n = Math.round((n + Number.EPSILON)*100)/100;
+  return n.toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:2});
+}
+function initials(name){ return name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function curSym(){ return (state.currentProject && state.currentProject.currency) || '₩'; }
+function homeSym(){ return (state.currentProject && state.currentProject.homeCurrency) || ''; }
+function sameCurrency(p){ return !!p.homeCurrency && p.currency.trim() === p.homeCurrency.trim(); }
+function needsConversion(p){ return !!p.homeCurrency && !sameCurrency(p); }
+
+function normalizeProject(p){
+  p.name = p.name || 'Untitled trip';
+  p.currency = p.currency || '₩';
+  p.homeCurrency = (p.homeCurrency !== undefined) ? p.homeCurrency : 'HK$';
+  p.categories = p.categories && p.categories.length ? p.categories : DEFAULT_CATEGORIES.slice();
+  p.paymentMethods = p.paymentMethods && p.paymentMethods.length ? p.paymentMethods : DEFAULT_PAYMENT_METHODS.slice();
+  p.exchangeRates = (p.exchangeRates || []).map(r => ({
+    ...r,
+    paymentMethod: r.paymentMethod === 'cash' ? 'Cash' : (r.paymentMethod === 'card' ? 'Card' : r.paymentMethod)
+  }));
+  p.members = p.members || [];
+  p.expenses = (p.expenses || []).map(e=>{
+    const ne = Object.assign({}, e);
+    if(!Array.isArray(ne.adjustments)){
+      ne.adjustments = (ne.adjustmentType && ne.adjustmentType!=='none' && ne.adjustmentPercent)
+        ? [{ id: uid(), sign: ne.adjustmentType==='taxfree' ? '-' : '+', percent: ne.adjustmentPercent, label: ne.adjustmentType==='taxfree' ? 'Tax-free' : 'Service charge' }]
+        : [];
+    }
+    delete ne.adjustmentType;
+    delete ne.adjustmentPercent;
+    if(ne.paymentMethod === undefined) ne.paymentMethod = 'Cash';
+    if(ne.paymentMethod === 'cash') ne.paymentMethod = 'Cash';
+    if(ne.paymentMethod === 'card') ne.paymentMethod = 'Card';
+    const shares = {};
+    Object.entries(ne.shares || {}).forEach(([mid, v])=>{
+      if(typeof v === 'number'){ shares[mid] = {amount: v, settled: false}; }
+      else { shares[mid] = {amount: v.amount||0, settled: !!v.settled}; }
+    });
+    ne.shares = shares;
+    delete ne.subtotal;
+    delete ne.baseShares;
+    return ne;
+  });
+  return p;
+}
+
+async function loadProjects(){ state.projects = (await safeGet('projects', false)) || []; }
+async function saveProjects(){ await safeSet('projects', state.projects, false); }
+
+async function loadProject(id){
+  const data = await safeGet('project:'+id, true);
+  if(data){
+    state.currentProject = normalizeProject(data);
+  } else {
+    state.currentProject = null;
+  }
+  state.currentProjectId = id;
+}
+async function saveCurrentProject(){
+  if(state.currentProjectId) await safeSet('project:'+state.currentProjectId, state.currentProject, true);
+}
+
+async function createProject(name){
+  const id = uid();
+  const project = normalizeProject({ id, name, members: [], expenses: [], createdAt: Date.now() });
+  state.currentProject = project;
+  state.currentProjectId = id;
+  await saveCurrentProject();
+  state.projects.push({id, name});
+  await saveProjects();
+  state.activeTab = 'members';
+  render();
+}
+
+async function deleteProjectPermanently(id){
+  await safeDelete('project:'+id);
+  state.projects = state.projects.filter(p=>p.id!==id);
+  await saveProjects();
+  if(state.currentProjectId === id){
+    state.currentProjectId = null; state.currentProject = null;
+    if(state.projects.length) await loadProject(state.projects[0].id);
+  }
+  render();
+}
+
+function freshDraft(){
+  const included = {};
+  state.currentProject.members.forEach(m=> included[m.id] = true);
+  return {
+    dateMode: 'auto',
+    date: todayStr(),
+    item: '',
+    category: (state.currentProject.categories[0]) || 'Other',
+    total: '',
+    adjustments: [],
+    payerId: (state.currentProject.members[0] && state.currentProject.members[0].id) || '',
+    paymentMethod: (state.currentProject.paymentMethods[0]) || 'Cash',
+    splitType: 'equal',
+    includedMembers: included,
+    customShares: {}
+  };
+}
+
+// Adjustments (service charge, tax, discount, etc.) apply in the order listed, compounding —
+// e.g. +10% then +5% is total*(1.10)*(1.05). Sign is '+' (surcharge) or '-' (discount).
+function multiplierForAdjustments(adjustments){
+  return (adjustments||[]).reduce((m,a)=>{
+    const p = parseFloat(a.percent)||0;
+    return m * (a.sign==='-' ? (1 - p/100) : (1 + p/100));
+  }, 1);
+}
+
+function draftFromExpense(e){
+  const customShares = {};
+  const included = {};
+  const multiplier = multiplierForAdjustments(e.adjustments);
+  (state.currentProject.members||[]).forEach(m=>{ included[m.id] = false; });
+  Object.entries(e.shares||{}).forEach(([mid,info])=>{
+    customShares[mid] = multiplier !== 1 ? Math.round((info.amount/multiplier + Number.EPSILON)*100)/100 : info.amount;
+    included[mid] = true;
+  });
+  return {
+    dateMode: 'manual',
+    date: e.date,
+    item: e.item,
+    category: e.category,
+    total: e.total,
+    adjustments: (e.adjustments||[]).map(a=>({...a})),
+    payerId: e.payerId,
+    paymentMethod: e.paymentMethod,
+    splitType: e.splitType,
+    includedMembers: included,
+    customShares
+  };
+}
+
+// For custom split: customShares holds each person's raw item amount (as it appears on the
+// receipt, before any adjustments). Each adjustment percentage is then applied per person, so
+// someone who ordered less also carries less of a service charge (or a bigger cut of a discount).
+function computeFinalShares(total, adjustments, splitType, memberIds, customShares){
+  const multiplier = multiplierForAdjustments(adjustments);
+  const shares = {};
+  if(splitType==='equal'){
+    const n = memberIds.length;
+    const per = n ? Math.round((total/n + Number.EPSILON)*100)/100 : 0;
+    memberIds.forEach(id=> shares[id] = {amount: per, settled:false});
+  } else {
+    memberIds.forEach(id=>{
+      const raw = parseFloat(customShares[id])||0;
+      shares[id] = {amount: Math.round((raw*multiplier + Number.EPSILON)*100)/100, settled:false};
+    });
+  }
+  return shares;
+}
+function customSum(memberIds, customShares){
+  return memberIds.reduce((s,id)=> s + (parseFloat(customShares[id])||0), 0);
+}
+// What the entered raw item amounts imply the total should be, once all adjustments are applied.
+function customImpliedTotal(memberIds, customShares, adjustments){
+  const multiplier = multiplierForAdjustments(adjustments);
+  return customSum(memberIds, customShares) * multiplier;
+}
+function estimatedPreAdjustmentAmount(total, adjustments){
+  const multiplier = multiplierForAdjustments(adjustments);
+  return multiplier !== 1 ? total / multiplier : null;
+}
+
+function rateForExpense(project, e){
+  if(sameCurrency(project)) return {rate:1, exact:true};
+  if(!project.homeCurrency) return null;
+  const exact = findRate(project, e.payerId, e.date, e.paymentMethod);
+  if(exact) return {rate: exact.rate, exact:true};
+  if(project.exchangeRates.length){
+    const avg = project.exchangeRates.reduce((s,r)=>s+r.rate,0) / project.exchangeRates.length;
+    return {rate: avg, exact:false};
+  }
+  return null;
+}
+function computeBalances(project){
+  const bal = {};
+  project.members.forEach(m => bal[m.id] = {paidUpfront:0, owed:0, receivable:0, owedHome:0, receivableHome:0, approxHome:false, hasHome:false});
+  project.expenses.forEach(e=>{
+    if(bal[e.payerId]) bal[e.payerId].paidUpfront += e.total;
+    const rateInfo = rateForExpense(project, e);
+    Object.entries(e.shares||{}).forEach(([mid, info])=>{
+      if(mid === e.payerId) return;
+      if(!bal[mid]) return;
+      if(!info.settled){
+        bal[mid].owed += info.amount;
+        if(bal[e.payerId]) bal[e.payerId].receivable += info.amount;
+        if(rateInfo){
+          const homeAmt = info.amount * rateInfo.rate;
+          bal[mid].owedHome += homeAmt;
+          bal[mid].hasHome = true;
+          if(bal[e.payerId]){ bal[e.payerId].receivableHome += homeAmt; bal[e.payerId].hasHome = true; }
+          if(!rateInfo.exact){ bal[mid].approxHome = true; if(bal[e.payerId]) bal[e.payerId].approxHome = true; }
+        }
+      }
+    });
+  });
+  return bal;
+}
+function computeSettlement(project){
+  const balances = computeBalances(project);
+  const nets = project.members.map(m=>({
+    id:m.id, name:m.name,
+    net: (balances[m.id].receivable||0) - (balances[m.id].owed||0),
+    netHome: (balances[m.id].receivableHome||0) - (balances[m.id].owedHome||0),
+    hasHome: balances[m.id].hasHome, approxHome: balances[m.id].approxHome
+  }));
+  const creditors = nets.filter(n=>n.net>0.005).map(n=>({...n})).sort((a,b)=>b.net-a.net);
+  const debtors = nets.filter(n=>n.net<-0.005).map(n=>({...n, net:-n.net, netHome:-n.netHome})).sort((a,b)=>b.net-a.net);
+  const transactions = [];
+  let i=0, j=0;
+  while(i<debtors.length && j<creditors.length){
+    const pay = Math.min(debtors[i].net, creditors[j].net);
+    if(pay > 0.005){
+      // Split this trip-currency payment proportionally using the debtor's own blended
+      // home-currency rate (their actual recorded conversions), not one global average.
+      const debtorRate = debtors[i].net > 0.005 ? debtors[i].netHome / debtors[i].net : null;
+      transactions.push({
+        from:debtors[i].name, to:creditors[j].name, amount:pay,
+        homeAmount: debtorRate!==null ? pay*debtorRate : null,
+        approxHome: debtors[i].approxHome, hasHome: debtors[i].hasHome
+      });
+      if(debtorRate!==null) debtors[i].netHome -= pay*debtorRate;
+    }
+    debtors[i].net -= pay;
+    creditors[j].net -= pay;
+    if(debtors[i].net <= 0.005) i++;
+    if(creditors[j].net <= 0.005) j++;
+  }
+  return transactions;
+}
+function categoryTotals(project){
+  const totals = {};
+  project.expenses.forEach(e=>{ totals[e.category] = (totals[e.category]||0) + e.total; });
+  return totals;
+}
+function findRate(project, payerId, date, paymentMethod){
+  return project.exchangeRates.find(r => r.payerId===payerId && r.date===date && r.paymentMethod===paymentMethod);
+}
+
+function render(){
+  const app = document.getElementById('app');
+  let html = renderHeader();
+
+  if(!state.currentProject){
+    html += renderEmptyState();
+    app.innerHTML = html;
+    attachHeaderEvents(); attachEmptyStateEvents();
+    return;
+  }
+
+  if(!state.draft && state.activeTab==='add'){
+    state.draft = state.editingExpenseId
+      ? draftFromExpense(state.currentProject.expenses.find(e=>e.id===state.editingExpenseId))
+      : freshDraft();
+  }
+
+  html += renderTabs();
+  html += '<div id="tabContent">' + renderTabContent() + '</div>';
+  app.innerHTML = html;
+  attachHeaderEvents(); attachTabEvents(); attachContentEvents();
+}
+
+function renderHeader(){
+  const opts = state.projects.map(p => `<option value="${p.id}" ${p.id===state.currentProjectId?'selected':''}>${escapeHtml(p.name)}</option>`).join('');
+  return `
+  <header class="top">
+    <div class="brand"><div class="mark">$</div><h1>Trip Split</h1></div>
+    <div class="row">
+      ${state.projects.length ? `<select id="projectSelect">${opts}</select>` : ''}
+      <button class="btn secondary small" id="newProjectBtn">New trip</button>
+    </div>
+  </header>`;
+}
+
+function renderEmptyState(){
+  return `
+  <div class="empty-state">
+    <h2>Start a new trip</h2>
+    <p>Create a trip to track shared expenses with your friends. Everything stays on this device.</p>
+    <div class="row" style="justify-content:center;">
+      <button class="btn" id="emptyNewProjectBtn">Create a new trip</button>
+    </div>
+  </div>`;
+}
+
+function renderTabs(){
+  const tabs = [
+    {id:'add', label:'Add expense'},
+    {id:'expenses', label:'Expenses'},
+    {id:'members', label:'Members'},
+    {id:'settings', label:'Settings'},
+    {id:'summary', label:'Summary'}
+  ];
+  return `<div class="tabs">${tabs.map(t=>`<div class="tab ${state.activeTab===t.id?'active':''}" data-tab="${t.id}">${t.label}</div>`).join('')}</div>`;
+}
+
+function renderTabContent(){
+  const p = state.currentProject;
+  if(state.activeTab==='members') return renderMembersTab(p);
+  if(state.activeTab==='expenses') return renderExpensesTab(p);
+  if(state.activeTab==='settings') return renderSettingsTab(p);
+  if(state.activeTab==='summary') return renderSummaryTab(p);
+  return renderAddExpenseTab(p);
+}
+
+function renderMembersTab(p){
+  const rows = p.members.map(m => `
+    <div class="member-row">
+      <span class="member-name"><span class="avatar">${escapeHtml(initials(m.name))}</span>${escapeHtml(m.name)}</span>
+      <button class="icon-btn" data-remove-member="${m.id}">Remove</button>
+    </div>`).join('') || `<div class="empty-hint">No members yet. Add your travel companions below.</div>`;
+  return `
+  <div class="card">
+    <h3 style="margin-bottom:12px;">People on this trip</h3>
+    ${rows}
+    <div class="add-member-row">
+      <input type="text" id="newMemberName" placeholder="Add a person's name">
+      <button class="btn small" id="addMemberBtn">Add</button>
+    </div>
+  </div>`;
+}
+
+function renderAddExpenseTab(p){
+  if(p.members.length < 1){
+    return `<div class="card"><p class="empty-hint">Add at least one person in the Members tab before logging an expense.</p></div>`;
+  }
+  const d = state.draft;
+  const memberOpts = p.members.map(m=>`<option value="${m.id}" ${d.payerId===m.id?'selected':''}>${escapeHtml(m.name)}</option>`).join('');
+  const catOpts = p.categories.map(c=>`<option value="${escapeHtml(c)}" ${d.category===c?'selected':''}>${escapeHtml(c)}</option>`).join('')
+    + `<option value="__add_new__">+ Add new category</option>`;
+  const methodOpts = p.paymentMethods.map(m=>`<option value="${escapeHtml(m)}" ${d.paymentMethod===m?'selected':''}>${escapeHtml(m)}</option>`).join('')
+    + `<option value="__add_new__">+ Add new payment method</option>`;
+
+  const memberIds = p.members.map(m=>m.id);
+  const totalNum = parseFloat(d.total) || 0;
+  const preAdj = estimatedPreAdjustmentAmount(totalNum, d.adjustments);
+
+  const adjustmentRowsHtml = d.adjustments.map(a=>`
+    <div class="adjustment-row" data-adj-id="${a.id}">
+      <div class="toggle-group" style="max-width:76px;flex:0 0 76px;">
+        <div class="toggle-btn" data-adj-sign="${a.id}" data-value="+" style="${a.sign!=='-'?'background:var(--navy);color:#fff;border-color:var(--navy);':''}padding:9px 6px;">+</div>
+        <div class="toggle-btn" data-adj-sign="${a.id}" data-value="-" style="${a.sign==='-'?'background:var(--navy);color:#fff;border-color:var(--navy);':''}padding:9px 6px;">−</div>
+      </div>
+      <input type="number" step="0.0001" min="0" max="100" data-adj-percent="${a.id}" value="${a.percent}" placeholder="%" style="width:72px;flex:0 0 72px;">
+      <input type="text" data-adj-label="${a.id}" value="${escapeHtml(a.label||'')}" placeholder="Label, e.g. Service charge or Tax" style="flex:1;min-width:0;">
+      <button type="button" class="icon-btn" data-adj-remove="${a.id}">Remove</button>
+    </div>`).join('');
+
+  const splitMembersHtml = p.members.map(m=>{
+    const val = d.customShares[m.id] !== undefined ? d.customShares[m.id] : '';
+    const isIncluded = d.includedMembers[m.id] !== false;
+    return `
+    <div class="split-member-row" style="${isIncluded?'':'opacity:0.5;'}">
+      <label class="paid-back-item" style="width:22px;flex-shrink:0;">
+        <input type="checkbox" data-include-member="${m.id}" ${isIncluded?'checked':''} aria-label="Include ${escapeHtml(m.name)} in this expense">
+      </label>
+      <span class="name">${escapeHtml(m.name)}</span>
+      <input type="number" step="0.01" min="0" data-share-member="${m.id}" value="${val}" placeholder="0" ${(d.splitType==='equal'||!isIncluded)?'disabled':''}>
+    </div>`;
+  }).join('');
+
+  const resolvedDate = d.dateMode==='auto' ? todayStr() : d.date;
+  let rateBanner = '';
+  if(needsConversion(p)){
+    const rateInfo = findRate(p, d.payerId, resolvedDate, d.paymentMethod);
+    rateBanner = rateInfo
+      ? `<div class="banner success">Rate on file for this payer/date/method: 1${curSym()} = ${rateInfo.rate} ${homeSym()}. Estimated: ${homeSym()}${fmt(totalNum*rateInfo.rate)}</div>`
+      : `<div class="banner warn">No exchange rate yet for this payer on ${resolvedDate} via ${escapeHtml(d.paymentMethod)}. You can add it later in Settings once you know it.</div>`;
+  }
+
+  return `
+  <div class="card">
+    <h3 style="margin-bottom:16px;">${state.editingExpenseId?'Edit expense':'New expense'}</h3>
+    <div class="field">
+      <label>Date</label>
+      <div class="toggle-group" style="margin-bottom:8px;">
+        <div class="toggle-btn ${d.dateMode==='auto'?'active':''}" data-toggle="dateMode" data-value="auto">Today</div>
+        <div class="toggle-btn ${d.dateMode==='manual'?'active':''}" data-toggle="dateMode" data-value="manual">Choose date</div>
+      </div>
+      <input type="date" id="expenseDate" value="${d.dateMode==='auto'?todayStr():d.date}" ${d.dateMode==='auto'?'disabled':''}>
+    </div>
+    <div class="field">
+      <label>Item</label>
+      <input type="text" id="expenseItem" placeholder="e.g. Dinner at Myeongdong" value="${escapeHtml(d.item)}">
+    </div>
+    <div class="two-col">
+      <div class="field">
+        <label>Category</label>
+        <select id="expenseCategory">${catOpts}</select>
+      </div>
+      <div class="field">
+        <label>Total amount paid (${curSym()})</label>
+        <input type="number" step="0.01" min="0" id="expenseTotal" placeholder="0" value="${d.total}">
+        <div class="hint">Enter the actual final amount — the receipt total, already including any service charge.</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Adjustments (service charge, tax, discount... — only affects how the custom split is divided, never the total above)</label>
+      ${adjustmentRowsHtml}
+      <button type="button" class="btn secondary small" id="addAdjustmentBtn" style="margin-top:${d.adjustments.length?'8px':'0'};">+ Add adjustment</button>
+      ${preAdj!==null ? `<div class="hint" id="preAdjHint">≈ ${curSym()}${fmt(preAdj)} before these adjustments</div>` : `<div class="hint" id="preAdjHint"></div>`}
+    </div>
+    <div class="two-col">
+      <div class="field">
+        <label>Paid by</label>
+        <select id="expensePayer">${memberOpts}</select>
+      </div>
+      <div class="field">
+        <label>Payment method</label>
+        <select id="expensePaymentMethod">${methodOpts}</select>
+      </div>
+    </div>
+    ${rateBanner}
+    <div class="field">
+      <label>Split</label>
+      <div class="toggle-group">
+        <div class="toggle-btn ${d.splitType==='equal'?'active':''}" data-toggle="splitType" data-value="equal">Split equally</div>
+        <div class="toggle-btn ${d.splitType==='custom'?'active':''}" data-toggle="splitType" data-value="custom">Custom amounts</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Who is included ${d.splitType==='custom'?(d.adjustments.length===0 ? '(enter what each person actually owes — must add up to the total)' : '(enter each person\u2019s item amount from the receipt, before adjustments — they\u2019ll be applied automatically per person)'):''}</label>
+      ${splitMembersHtml}
+      ${d.splitType==='custom' ? `<div class="split-summary"><span id="splitRemaining">Remaining: ${curSym()}0</span><button type="button" class="btn secondary small" id="autoBalanceBtn" style="display:none;">Auto-fill % to match</button></div>` : ''}
+    </div>
+    ${state.formError ? `<div class="banner error">${escapeHtml(state.formError)}</div>` : ''}
+    <div class="row" style="margin-top:6px;">
+      <button class="btn" id="saveExpenseBtn">${state.editingExpenseId?'Save changes':'Add expense'}</button>
+      ${state.editingExpenseId ? `<button class="btn secondary" id="cancelEditBtn">Cancel</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderExpensesTab(p){
+  if(p.expenses.length===0) return `<div class="card"><p class="empty-hint">No expenses logged yet.</p></div>`;
+  const sorted = [...p.expenses].sort((a,b)=> b.date.localeCompare(a.date));
+  const memberName = id => (p.members.find(m=>m.id===id)||{}).name || '—';
+
+  const cards = sorted.map(e=>{
+    const payerName = memberName(e.payerId);
+    const includedIds = Object.keys(e.shares||{});
+    const adjBadge = (e.adjustments||[]).map(a=>
+      `<span class="badge ${a.sign==='-'?'taxfree':'service'}">${a.sign==='-'?'−':'+'}${fmt(a.percent)}%${a.label?' '+escapeHtml(a.label):''}</span>`
+    ).join(' ');
+    const methodBadge = `<span class="badge method">${escapeHtml(e.paymentMethod)}</span>`;
+    let rateBadge = '';
+    if(needsConversion(p)){
+      const r = findRate(p, e.payerId, e.date, e.paymentMethod);
+      rateBadge = r
+        ? `<span class="badge service">≈ ${homeSym()}${fmt(e.total*r.rate)}</span>`
+        : `<span class="badge pending">Rate pending</span>`;
+    }
+    const paidBackHtml = includedIds.filter(mid=>mid!==e.payerId).map(mid=>{
+      const info = e.shares[mid];
+      return `
+      <label class="paid-back-item">
+        <input type="checkbox" data-settle-expense="${e.id}" data-settle-member="${mid}" ${info.settled?'checked':''}>
+        ${escapeHtml(memberName(mid))} paid back
+      </label>`;
+    }).join('');
+
+    return `
+    <div class="expense-card">
+      <div class="expense-card-top">
+        <div>
+          <div class="expense-card-title">${escapeHtml(e.item)}</div>
+          <div class="expense-card-date">${e.date}</div>
+        </div>
+        <div class="expense-card-amount">${curSym()}${fmt(e.total)}</div>
+      </div>
+      <div class="expense-card-meta">
+        <span class="cat-pill">${escapeHtml(e.category)}</span>
+        ${adjBadge} ${methodBadge} ${rateBadge}
+        <span>Paid by <b>${escapeHtml(payerName)}</b></span>
+        <span>· Split: ${e.splitType==='equal'?'equal':'custom'} between ${includedIds.map(memberName).join(', ')}</span>
+      </div>
+      ${paidBackHtml ? `<div class="paid-back-list">${paidBackHtml}</div>` : ''}
+      <div class="row-actions">
+        <button class="icon-btn" data-edit-expense="${e.id}">Edit</button>
+        <button class="icon-btn" data-delete-expense="${e.id}">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div>${cards}</div>`;
+}
+
+function renderSettingsTab(p){
+  const catChips = p.categories.map(c => `
+    <div class="cat-chip">${escapeHtml(c)} <button data-remove-cat="${escapeHtml(c)}" aria-label="Remove category">×</button></div>
+  `).join('') || `<div class="empty-hint">No categories yet.</div>`;
+
+  const methodChips = p.paymentMethods.map(m => `
+    <div class="cat-chip">${escapeHtml(m)} <button data-remove-method="${escapeHtml(m)}" aria-label="Remove payment method">×</button></div>
+  `).join('') || `<div class="empty-hint">No payment methods yet.</div>`;
+
+  const memberOpts = p.members.map(m=>`<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+  const methodOpts = p.paymentMethods.map(m=>`<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
+
+  const rateRows = [...p.exchangeRates].sort((a,b)=>b.date.localeCompare(a.date)).map(r=>{
+    const name = (p.members.find(m=>m.id===r.payerId)||{}).name || '—';
+    return `
+    <div class="rate-row">
+      <span>${r.date} · ${escapeHtml(name)} · ${escapeHtml(r.paymentMethod)}</span>
+      <span class="row" style="gap:10px;">
+        <b>1${curSym()} = ${r.rate} ${homeSym()}</b>
+        <button class="icon-btn" data-remove-rate="${r.id}">Remove</button>
+      </span>
+    </div>`;
+  }).join('') || `<div class="empty-hint">No exchange rates recorded yet.</div>`;
+
+  return `
+  <div class="card settings-block">
+    <h3>Currency</h3>
+    <div class="two-col">
+      <div class="field">
+        <label>Trip currency symbol</label>
+        <input type="text" id="currencyInput" value="${escapeHtml(p.currency)}" placeholder="e.g. ₩">
+      </div>
+      <div class="field">
+        <label>Home currency symbol (for settlement conversion)</label>
+        <input type="text" id="homeCurrencyInput" value="${escapeHtml(p.homeCurrency)}" placeholder="e.g. HK$ (leave blank to disable)">
+        <div class="hint">${sameCurrency(p) ? 'Same as trip currency — settlement will show one figure, no exchange rate needed.' : 'If different from the trip currency, add exchange rates below to convert settlement amounts.'}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card settings-block">
+    <h3>Categories</h3>
+    <div class="cat-chip-row">${catChips}</div>
+    <div class="add-member-row">
+      <input type="text" id="newCategoryInput" placeholder="New category name">
+      <button class="btn small" id="addCategoryBtn">Add</button>
+    </div>
+  </div>
+
+  <div class="card settings-block">
+    <h3>Payment methods</h3>
+    <div class="cat-chip-row">${methodChips}</div>
+    <div class="add-member-row">
+      <input type="text" id="newMethodInput" placeholder="e.g. Octopus, PayPal, Alipay">
+      <button class="btn small" id="addMethodBtn">Add</button>
+    </div>
+  </div>
+
+  <div class="card settings-block">
+    <h3>Exchange rates</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin:-6px 0 14px;">Card charges usually settle at a rate the bank confirms later. Record it here once you know it — matched by payer, date, and payment method.</p>
+    ${p.members.length ? `
+    <div class="three-col">
+      <div class="field"><label>Date</label><input type="date" id="rateDate" value="${todayStr()}"></div>
+      <div class="field"><label>Payer</label><select id="ratePayer">${memberOpts}</select></div>
+      <div class="field"><label>Method</label><select id="ratePaymentMethod">${methodOpts}</select></div>
+    </div>
+    <div class="field"><label>Rate (1 ${escapeHtml(p.currency)} = ? ${escapeHtml(p.homeCurrency)||'home currency'})</label>
+      <input type="number" step="0.0001" min="0" id="rateValue" placeholder="e.g. 0.0056">
+    </div>
+    <button class="btn small" id="addRateBtn" style="margin-bottom:16px;">Save rate</button>
+    ` : `<p class="empty-hint">Add members first.</p>`}
+    ${rateRows}
+  </div>
+
+  <div class="card settings-block">
+    <h3>Backup, sync & export</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin:-6px 0 14px;">This device stores its own copy of each trip, with no automatic sync between devices. Export a trip to a file, and send that file to a friend so they can import the same data on their device.</p>
+    <div class="row" style="margin-bottom:6px;">
+      <button class="btn secondary small" id="exportJsonBtn">Export this trip (.json)</button>
+      <button class="btn secondary small" id="importJsonBtn">Import a trip (.json)</button>
+      <input type="file" id="importJsonFile" accept=".json,application/json" style="display:none;">
+    </div>
+    <div class="hint" style="margin-bottom:14px;">Importing overwrites any trip on this device that shares the same Trip ID — otherwise it's added as a new trip. There's no merging: whoever imports last wins for that trip.</div>
+    <button class="btn secondary small" id="exportExcelBtn">Export a report (.xlsx)</button>
+    <div class="hint">A read-only spreadsheet with all expenses, balances, and category totals — good for printing or double-checking, not for re-importing. Needs an internet connection the first time, to load the Excel tool.</div>
+    <div id="exportImportMsg"></div>
+  </div>
+
+  <div class="card settings-block danger-zone">
+    <h3 style="color:var(--error);">Danger zone</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin:8px 0 14px;">Permanently deletes this trip and everything in it from this device. This cannot be undone.</p>
+    <button class="btn danger-solid" id="deleteTripBtn">Delete this trip permanently</button>
+  </div>`;
+}
+
+function renderSummaryTab(p){
+  if(p.expenses.length===0) return `<div class="card"><p class="empty-hint">Add some expenses to see the summary.</p></div>`;
+  const balances = computeBalances(p);
+  const total = p.expenses.reduce((s,e)=>s+e.total,0);
+  const settlement = computeSettlement(p);
+  const catTotals = categoryTotals(p);
+  const showHome = needsConversion(p) || sameCurrency(p);
+
+  const pendingRates = needsConversion(p) ? p.expenses.filter(e => !findRate(p, e.payerId, e.date, e.paymentMethod)) : [];
+  const anyExactOrApprox = showHome && p.members.some(m => balances[m.id].hasHome);
+
+  const balanceCards = p.members.map(m=>{
+    const b = balances[m.id];
+    const net = (b.receivable||0) - (b.owed||0);
+    const cls = net > 0.005 ? 'positive' : (net < -0.005 ? 'negative' : 'zero');
+    const label = net > 0.005 ? `should receive ${curSym()}${fmt(net)}` : (net < -0.005 ? `owes ${curSym()}${fmt(-net)}` : 'settled up');
+    const netHome = (b.receivableHome||0) - (b.owedHome||0);
+    const homeLine = showHome && b.hasHome && Math.abs(net) > 0.005 ? `<span class="home">${b.approxHome?'≈ ':''}${homeSym()}${fmt(Math.abs(netHome))}</span>` : '';
+    return `
+    <div class="balance-card">
+      <span class="balance-name"><span class="avatar">${escapeHtml(initials(m.name))}</span>${escapeHtml(m.name)}</span>
+      <span class="balance-amt ${cls}">${label}${homeLine}</span>
+    </div>`;
+  }).join('');
+
+  const settlementHtml = settlement.length
+    ? settlement.map(t=>`
+      <div class="settlement-item">
+        <span><b>${escapeHtml(t.from)}</b> pays <b>${escapeHtml(t.to)}</b> ${curSym()}${fmt(t.amount)}</span>
+        ${showHome && t.hasHome && t.homeAmount!==null ? `<span class="home-amt">${t.approxHome?'≈ ':''}${homeSym()}${fmt(t.homeAmount)}</span>` : ''}
+      </div>`).join('')
+    : `<div class="empty-hint">Everyone is settled up.</div>`;
+
+  const convNote = anyExactOrApprox && !sameCurrency(p)
+    ? `<p style="font-size:12px;color:var(--text-muted);margin-top:10px;">${homeSym()} figures use the exact rate recorded for each payer/date/method where available, and fall back to an average of your recorded rates only where an exact match is missing (marked ≈).</p>`
+    : '';
+
+  const catEntries = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
+  const legend = catEntries.map(([cat,amt],i)=>{
+    const pct = total ? Math.round(amt/total*1000)/10 : 0;
+    return `<span><i style="background:${CATEGORY_COLORS[i%CATEGORY_COLORS.length]}"></i>${escapeHtml(cat)} ${curSym()}${fmt(amt)} (${pct}%)</span>`;
+  }).join('');
+
+  const pendingHtml = pendingRates.length ? `
+  <div class="card">
+    <h3 style="margin-bottom:10px;">Expenses awaiting an exchange rate</h3>
+    ${pendingRates.map(e=>`<div class="settlement-item"><span>${e.date} · ${escapeHtml(e.item)} · ${escapeHtml(e.paymentMethod)}</span><span>${curSym()}${fmt(e.total)}</span></div>`).join('')}
+    <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">Add these rates in Settings — until then, amounts affecting these expenses use an average of your recorded rates.</p>
+  </div>` : '';
+
+  return `
+  <div class="stat-grid">
+    <div class="stat-card"><div class="label">Total spent</div><div class="value">${curSym()}${fmt(total)}</div></div>
+    <div class="stat-card"><div class="label">Expenses logged</div><div class="value">${p.expenses.length}</div></div>
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:12px;">Who owes what</h3>
+    ${balanceCards}
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:12px;">Suggested settlements</h3>
+    ${settlementHtml}
+    ${convNote}
+  </div>
+  ${pendingHtml}
+  <div class="card">
+    <h3 style="margin-bottom:4px;">Spending by category</h3>
+    <div class="legend">${legend}</div>
+    <div style="max-width:260px;margin:10px auto 0;">${buildCategoryPieSVG(catEntries)}</div>
+  </div>`;
+}
+
+// Self-contained SVG pie chart — no external chart library or network request needed, so this
+// keeps working with zero internet connection (important for the local/offline version).
+function buildCategoryPieSVG(entries){
+  const total = entries.reduce((s,[,v])=>s+v, 0);
+  if(total <= 0) return '';
+  if(entries.length === 1){
+    return `<svg viewBox="0 0 200 200" style="width:100%;height:auto;"><circle cx="100" cy="100" r="90" fill="${CATEGORY_COLORS[0]}"/></svg>`;
+  }
+  const polar = (cx,cy,r,angleDeg)=>{
+    const rad = (angleDeg-90) * Math.PI/180;
+    return { x: cx + r*Math.cos(rad), y: cy + r*Math.sin(rad) };
+  };
+  let cumulative = 0;
+  const cx=100, cy=100, r=90;
+  const slices = entries.map(([label,val],i)=>{
+    const startAngle = cumulative/total*360;
+    cumulative += val;
+    const endAngle = cumulative/total*360;
+    const start = polar(cx,cy,r,endAngle);
+    const end = polar(cx,cy,r,startAngle);
+    const largeArc = (endAngle-startAngle) > 180 ? 1 : 0;
+    const path = `M ${cx} ${cy} L ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${r} ${r} 0 ${largeArc} 0 ${end.x.toFixed(2)} ${end.y.toFixed(2)} Z`;
+    return `<path d="${path}" fill="${CATEGORY_COLORS[i%CATEGORY_COLORS.length]}"><title>${escapeHtml(label)}</title></path>`;
+  }).join('');
+  return `<svg viewBox="0 0 200 200" style="width:100%;height:auto;">${slices}</svg>`;
+}
+
+function attachHeaderEvents(){
+  const sel = document.getElementById('projectSelect');
+  if(sel) sel.addEventListener('change', async e=>{
+    await loadProject(e.target.value);
+    state.activeTab='add'; state.editingExpenseId=null; state.draft=null; state.formError='';
+    render();
+  });
+  const newBtn = document.getElementById('newProjectBtn');
+  if(newBtn) newBtn.addEventListener('click', promptNewProject);
+}
+function attachEmptyStateEvents(){
+  const btn = document.getElementById('emptyNewProjectBtn');
+  if(btn) btn.addEventListener('click', promptNewProject);
+}
+function promptNewProject(){
+  showInputModal('Name your trip', 'e.g. Seoul & Busan 2026', async (name)=>{ if(name && name.trim()) await createProject(name.trim()); });
+}
+
+function attachTabEvents(){
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.addEventListener('click', ()=>{
+      state.activeTab = t.dataset.tab;
+      if(t.dataset.tab !== 'add'){ state.editingExpenseId = null; state.draft = null; state.formError=''; }
+      render();
+    });
+  });
+}
+
+function attachContentEvents(){
+  const p = state.currentProject;
+  if(state.activeTab === 'members') attachMembersEvents(p);
+  if(state.activeTab === 'add') attachAddExpenseEvents(p);
+  if(state.activeTab === 'expenses') attachExpensesEvents(p);
+  if(state.activeTab === 'settings') attachSettingsEvents(p);
+}
+
+function attachMembersEvents(p){
+  const addBtn = document.getElementById('addMemberBtn');
+  const input = document.getElementById('newMemberName');
+  const doAdd = async ()=>{
+    const name = input.value.trim();
+    if(!name) return;
+    p.members.push({id:uid(), name});
+    await saveCurrentProject();
+    render();
+  };
+  if(addBtn) addBtn.addEventListener('click', doAdd);
+  if(input) input.addEventListener('keydown', e=>{ if(e.key==='Enter') doAdd(); });
+  document.querySelectorAll('[data-remove-member]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const mid = btn.dataset.removeMember;
+      const used = p.expenses.some(e => e.payerId===mid || (e.shares && e.shares[mid]!==undefined));
+      const doRemove = async ()=>{ p.members = p.members.filter(m=>m.id!==mid); await saveCurrentProject(); render(); };
+      if(used) showConfirmModal('This person is used in existing expenses. Remove them anyway?', doRemove);
+      else doRemove();
+    });
+  });
+}
+
+function attachAddExpenseEvents(p){
+  const d = state.draft;
+
+  document.querySelectorAll('[data-toggle]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      d[btn.dataset.toggle] = btn.dataset.value;
+      state.formError = '';
+      render();
+    });
+  });
+
+  const dateInput = document.getElementById('expenseDate');
+  if(dateInput) dateInput.addEventListener('input', ()=>{ d.date = dateInput.value; });
+  const itemInput = document.getElementById('expenseItem');
+  if(itemInput) itemInput.addEventListener('input', ()=>{ d.item = itemInput.value; });
+
+  const catSelect = document.getElementById('expenseCategory');
+  if(catSelect) catSelect.addEventListener('change', ()=>{
+    if(catSelect.value === '__add_new__'){
+      showInputModal('New category', 'e.g. Souvenirs', async (name)=>{
+        const trimmed = (name||'').trim();
+        if(trimmed && !p.categories.includes(trimmed)){ p.categories.push(trimmed); await saveCurrentProject(); }
+        d.category = trimmed || d.category;
+        render();
+      });
+    } else { d.category = catSelect.value; }
+  });
+
+  const methodSelect = document.getElementById('expensePaymentMethod');
+  if(methodSelect) methodSelect.addEventListener('change', ()=>{
+    if(methodSelect.value === '__add_new__'){
+      showInputModal('New payment method', 'e.g. Octopus, PayPal', async (name)=>{
+        const trimmed = (name||'').trim();
+        if(trimmed && !p.paymentMethods.includes(trimmed)){ p.paymentMethods.push(trimmed); await saveCurrentProject(); }
+        d.paymentMethod = trimmed || d.paymentMethod;
+        render();
+      });
+    } else { d.paymentMethod = methodSelect.value; render(); }
+  });
+
+  const totalInput = document.getElementById('expenseTotal');
+  if(totalInput) totalInput.addEventListener('input', ()=>{
+    d.total = totalInput.value;
+    updatePreAdjHint();
+    updateRemainingDisplay();
+  });
+
+  const addAdjustmentBtn = document.getElementById('addAdjustmentBtn');
+  if(addAdjustmentBtn) addAdjustmentBtn.addEventListener('click', ()=>{
+    d.adjustments.push({id:uid(), sign:'+', percent:'', label:''});
+    render();
+  });
+  document.querySelectorAll('[data-adj-remove]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      d.adjustments = d.adjustments.filter(a=>a.id!==btn.dataset.adjRemove);
+      updatePreAdjHint(); updateRemainingDisplay();
+      render();
+    });
+  });
+  document.querySelectorAll('[data-adj-sign]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const a = d.adjustments.find(x=>x.id===btn.dataset.adjSign);
+      if(a) a.sign = btn.dataset.value;
+      render();
+    });
+  });
+  document.querySelectorAll('[data-adj-percent]').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      const a = d.adjustments.find(x=>x.id===inp.dataset.adjPercent);
+      if(a) a.percent = inp.value;
+      updatePreAdjHint();
+      updateRemainingDisplay();
+    });
+  });
+  document.querySelectorAll('[data-adj-label]').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      const a = d.adjustments.find(x=>x.id===inp.dataset.adjLabel);
+      if(a) a.label = inp.value;
+    });
+  });
+
+  const payerSelect = document.getElementById('expensePayer');
+  if(payerSelect) payerSelect.addEventListener('change', ()=>{ d.payerId = payerSelect.value; render(); });
+
+  document.querySelectorAll('[data-include-member]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      d.includedMembers[cb.dataset.includeMember] = cb.checked;
+      state.formError = '';
+      render();
+    });
+  });
+
+  document.querySelectorAll('[data-share-member]').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      d.customShares[inp.dataset.shareMember] = inp.value;
+      updateRemainingDisplay();
+    });
+  });
+  const autoBalanceBtn = document.getElementById('autoBalanceBtn');
+  if(autoBalanceBtn) autoBalanceBtn.addEventListener('click', autoBalanceAdjustment);
+  updateRemainingDisplay();
+
+  const saveBtn = document.getElementById('saveExpenseBtn');
+  if(saveBtn) saveBtn.addEventListener('click', onSaveExpense);
+  const cancelBtn = document.getElementById('cancelEditBtn');
+  if(cancelBtn) cancelBtn.addEventListener('click', ()=>{
+    state.editingExpenseId = null; state.draft = null; state.formError = '';
+    render();
+  });
+}
+
+function updatePreAdjHint(){
+  const d = state.draft;
+  const el = document.getElementById('preAdjHint');
+  if(!el) return;
+  const total = parseFloat(d.total) || 0;
+  const pre = estimatedPreAdjustmentAmount(total, d.adjustments);
+  el.textContent = pre!==null ? `≈ ${curSym()}${fmt(pre)} before these adjustments` : '';
+}
+function updateRemainingDisplay(){
+  const d = state.draft;
+  if(d.splitType !== 'custom') return;
+  const p = state.currentProject;
+  const total = parseFloat(d.total) || 0;
+  const includedIds = p.members.map(m=>m.id).filter(id => d.includedMembers[id] !== false);
+  const implied = customImpliedTotal(includedIds, d.customShares, d.adjustments);
+  const remaining = Math.round((total - implied + Number.EPSILON)*100)/100;
+  const el = document.getElementById('splitRemaining');
+  if(el){
+    el.textContent = 'Remaining: ' + curSym() + fmt(remaining);
+    el.style.color = Math.abs(remaining) < 0.005 ? 'var(--success)' : 'var(--error)';
+  }
+  const balanceBtn = document.getElementById('autoBalanceBtn');
+  if(balanceBtn){
+    const rawSum = customSum(includedIds, d.customShares);
+    balanceBtn.style.display = (Math.abs(remaining) >= 0.005 && rawSum > 0 && total > 0) ? 'inline-block' : 'none';
+  }
+}
+
+// Solves for the exact percentage the last adjustment row needs (adding one first if there
+// isn't one yet) so that the entered item amounts, once adjusted, land exactly on the entered
+// total — instead of the person hand-calculating a precise percentage by trial and error.
+function autoBalanceAdjustment(){
+  const d = state.draft;
+  const p = state.currentProject;
+  const total = parseFloat(d.total) || 0;
+  const includedIds = p.members.map(m=>m.id).filter(id => d.includedMembers[id] !== false);
+  const rawSum = customSum(includedIds, d.customShares);
+  if(rawSum <= 0 || total <= 0) return;
+
+  const targetMultiplier = total / rawSum;
+  const otherAdjustments = d.adjustments.length ? d.adjustments.slice(0, -1) : [];
+  const otherMultiplier = multiplierForAdjustments(otherAdjustments);
+  if(otherMultiplier === 0) return;
+  const contribution = targetMultiplier / otherMultiplier;
+
+  const sign = contribution >= 1 ? '+' : '-';
+  const percentRaw = sign === '+' ? (contribution - 1) * 100 : (1 - contribution) * 100;
+  const percent = Math.round(percentRaw * 10000) / 10000;
+
+  if(d.adjustments.length === 0){
+    d.adjustments.push({id: uid(), sign, percent, label: ''});
+  } else {
+    const last = d.adjustments[d.adjustments.length - 1];
+    last.sign = sign;
+    last.percent = percent;
+  }
+  render();
+}
+
+async function onSaveExpense(){
+  const p = state.currentProject;
+  const d = state.draft;
+  state.formError = '';
+
+  const date = d.dateMode === 'auto' ? todayStr() : (d.date || todayStr());
+  const item = (d.item||'').trim();
+  const category = d.category;
+  const total = parseFloat(d.total);
+  const payerId = d.payerId;
+
+  if(!item){ state.formError = 'Enter an item name.'; render(); return; }
+  if(!total || total <= 0){ state.formError = 'Enter a total amount greater than 0.'; render(); return; }
+  if(!payerId){ state.formError = 'Choose who paid.'; render(); return; }
+  const badAdjustment = d.adjustments.find(a => !a.percent || parseFloat(a.percent) <= 0);
+  if(badAdjustment){
+    state.formError = 'Enter a percentage for each adjustment, or remove the empty one.'; render(); return;
+  }
+
+  const memberIds = p.members.map(m=>m.id).filter(id => d.includedMembers[id] !== false);
+  if(memberIds.length === 0){
+    state.formError = 'Select at least one person this expense applies to.'; render(); return;
+  }
+  if(d.splitType === 'custom'){
+    const implied = customImpliedTotal(memberIds, d.customShares, d.adjustments);
+    const diff = Math.round((total - implied + Number.EPSILON)*100)/100;
+    if(Math.abs(diff) >= 0.01){
+      state.formError = `The item amounts you entered${d.adjustments.length ? ' (after applying the adjustments)' : ''} don't add up to the total. Off by ${curSym()}${fmt(Math.abs(diff))}. Please adjust before saving.`;
+      render(); return;
+    }
+  }
+
+  const shares = computeFinalShares(total, d.adjustments, d.splitType, memberIds, d.customShares);
+
+  if(state.editingExpenseId){
+    const existing = p.expenses.find(e=>e.id===state.editingExpenseId);
+    Object.keys(shares).forEach(mid=>{ if(existing.shares[mid]) shares[mid].settled = existing.shares[mid].settled; });
+  }
+
+  const expenseData = {
+    id: state.editingExpenseId || uid(),
+    date, item, category, total, payerId,
+    adjustments: d.adjustments.map(a=>({id:a.id, sign:a.sign, percent: parseFloat(a.percent)||0, label:a.label||''})),
+    paymentMethod: d.paymentMethod, splitType: d.splitType,
+    shares
+  };
+
+  if(state.editingExpenseId){
+    const idx = p.expenses.findIndex(e=>e.id===state.editingExpenseId);
+    if(idx>=0) p.expenses[idx] = expenseData;
+  } else {
+    p.expenses.push(expenseData);
+  }
+
+  await saveCurrentProject();
+  state.editingExpenseId = null;
+  state.draft = null;
+  state.formError = '';
+  render();
+}
+
+function attachExpensesEvents(p){
+  document.querySelectorAll('[data-edit-expense]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const e = p.expenses.find(x=>x.id===btn.dataset.editExpense);
+      if(!e) return;
+      state.editingExpenseId = e.id;
+      state.draft = draftFromExpense(e);
+      state.activeTab = 'add';
+      state.formError = '';
+      render();
+    });
+  });
+  document.querySelectorAll('[data-delete-expense]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      showConfirmModal('Delete this expense?', async ()=>{
+        p.expenses = p.expenses.filter(x=>x.id!==btn.dataset.deleteExpense);
+        await saveCurrentProject();
+        render();
+      });
+    });
+  });
+  document.querySelectorAll('[data-settle-expense]').forEach(cb=>{
+    cb.addEventListener('change', async ()=>{
+      const e = p.expenses.find(x=>x.id===cb.dataset.settleExpense);
+      if(!e) return;
+      const mid = cb.dataset.settleMember;
+      if(e.shares[mid]) e.shares[mid].settled = cb.checked;
+      await saveCurrentProject();
+      render();
+    });
+  });
+}
+
+function attachSettingsEvents(p){
+  const curInput = document.getElementById('currencyInput');
+  if(curInput) curInput.addEventListener('change', async ()=>{ p.currency = curInput.value.trim() || '₩'; await saveCurrentProject(); render(); });
+  const homeInput = document.getElementById('homeCurrencyInput');
+  if(homeInput) homeInput.addEventListener('change', async ()=>{ p.homeCurrency = homeInput.value.trim(); await saveCurrentProject(); render(); });
+
+  const addCatBtn = document.getElementById('addCategoryBtn');
+  const newCatInput = document.getElementById('newCategoryInput');
+  const doAddCat = async ()=>{
+    const name = newCatInput.value.trim();
+    if(!name || p.categories.includes(name)) return;
+    p.categories.push(name); await saveCurrentProject(); render();
+  };
+  if(addCatBtn) addCatBtn.addEventListener('click', doAddCat);
+  if(newCatInput) newCatInput.addEventListener('keydown', e=>{ if(e.key==='Enter') doAddCat(); });
+  document.querySelectorAll('[data-remove-cat]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const cat = btn.dataset.removeCat;
+      const inUse = p.expenses.some(e=>e.category===cat);
+      const doRemove = async ()=>{ p.categories = p.categories.filter(c=>c!==cat); await saveCurrentProject(); render(); };
+      if(inUse) showConfirmModal(`"${cat}" is used by existing expenses. Remove it from the list anyway?`, doRemove);
+      else doRemove();
+    });
+  });
+
+  const addMethodBtn = document.getElementById('addMethodBtn');
+  const newMethodInput = document.getElementById('newMethodInput');
+  const doAddMethod = async ()=>{
+    const name = newMethodInput.value.trim();
+    if(!name || p.paymentMethods.includes(name)) return;
+    p.paymentMethods.push(name); await saveCurrentProject(); render();
+  };
+  if(addMethodBtn) addMethodBtn.addEventListener('click', doAddMethod);
+  if(newMethodInput) newMethodInput.addEventListener('keydown', e=>{ if(e.key==='Enter') doAddMethod(); });
+  document.querySelectorAll('[data-remove-method]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const method = btn.dataset.removeMethod;
+      const inUse = p.expenses.some(e=>e.paymentMethod===method);
+      const doRemove = async ()=>{ p.paymentMethods = p.paymentMethods.filter(c=>c!==method); await saveCurrentProject(); render(); };
+      if(inUse) showConfirmModal(`"${method}" is used by existing expenses. Remove it from the list anyway?`, doRemove);
+      else doRemove();
+    });
+  });
+
+  const addRateBtn = document.getElementById('addRateBtn');
+  if(addRateBtn) addRateBtn.addEventListener('click', async ()=>{
+    const date = document.getElementById('rateDate').value;
+    const payerId = document.getElementById('ratePayer').value;
+    const paymentMethod = document.getElementById('ratePaymentMethod').value;
+    const rate = parseFloat(document.getElementById('rateValue').value);
+    if(!date || !payerId || !rate || rate<=0) return;
+    p.exchangeRates = p.exchangeRates.filter(r => !(r.date===date && r.payerId===payerId && r.paymentMethod===paymentMethod));
+    p.exchangeRates.push({id:uid(), date, payerId, paymentMethod, rate});
+    await saveCurrentProject();
+    render();
+  });
+  document.querySelectorAll('[data-remove-rate]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      p.exchangeRates = p.exchangeRates.filter(r=>r.id!==btn.dataset.removeRate);
+      await saveCurrentProject();
+      render();
+    });
+  });
+
+  const deleteTripBtn = document.getElementById('deleteTripBtn');
+  if(deleteTripBtn) deleteTripBtn.addEventListener('click', ()=> showDeleteTripModal(p));
+
+  const exportJsonBtn = document.getElementById('exportJsonBtn');
+  if(exportJsonBtn) exportJsonBtn.addEventListener('click', ()=> exportProjectJSON(p));
+
+  const importJsonBtn = document.getElementById('importJsonBtn');
+  const importJsonFile = document.getElementById('importJsonFile');
+  if(importJsonBtn && importJsonFile){
+    importJsonBtn.addEventListener('click', ()=> importJsonFile.click());
+    importJsonFile.addEventListener('change', async ()=>{
+      const file = importJsonFile.files[0];
+      importJsonFile.value = '';
+      if(file) await importProjectFromFile(file);
+    });
+  }
+
+  const exportExcelBtn = document.getElementById('exportExcelBtn');
+  if(exportExcelBtn) exportExcelBtn.addEventListener('click', ()=> exportProjectExcel(p));
+}
+
+function showExportImportMessage(text, isError){
+  const el = document.getElementById('exportImportMsg');
+  if(!el) return;
+  el.innerHTML = `<div class="banner ${isError?'error':'success'}" style="margin-top:12px;">${escapeHtml(text)}</div>`;
+}
+
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=> URL.revokeObjectURL(url), 1000);
+}
+
+function exportProjectJSON(p){
+  const payload = { app: 'trip-split', exportVersion: 1, project: p };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json'});
+  const safeName = p.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  downloadBlob(blob, `tripsplit-${safeName}-${todayStr()}.json`);
+  showExportImportMessage('Exported. Send this file to a friend so they can import it.', false);
+}
+
+async function importProjectFromFile(file){
+  try{
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if(!data || data.app !== 'trip-split' || !data.project){
+      showExportImportMessage("This doesn't look like a Trip Split export file.", true);
+      return;
+    }
+    const imported = normalizeProject(data.project);
+    const existingLocally = state.projects.find(p=>p.id===imported.id);
+    const doImport = async ()=>{
+      state.currentProject = imported;
+      state.currentProjectId = imported.id;
+      await saveCurrentProject();
+      if(!existingLocally){
+        state.projects.push({id: imported.id, name: imported.name});
+        await saveProjects();
+      } else {
+        existingLocally.name = imported.name;
+        await saveProjects();
+      }
+      state.activeTab = 'summary';
+      state.draft = null;
+      render();
+    };
+    if(existingLocally){
+      showConfirmModal(`A trip called "${existingLocally.name}" already exists on this device with this same Trip ID. Importing will overwrite it with the version from this file. Continue?`, doImport);
+    } else {
+      await doImport();
+    }
+  }catch(e){
+    showExportImportMessage('Could not read that file — make sure it\u2019s a .json file exported from Trip Split.', true);
+  }
+}
+
+function exportProjectExcel(p){
+  if(typeof XLSX === 'undefined'){
+    showExportImportMessage('The Excel export tool needs an internet connection to load the first time. Connect to the internet and try again.', true);
+    return;
+  }
+  const memberName = id => (p.members.find(m=>m.id===id)||{}).name || '—';
+  const balances = computeBalances(p);
+  const settlement = computeSettlement(p);
+  const catTotals = categoryTotals(p);
+
+  const expenseRows = [['Date','Item','Category','Total','Adjustments','Paid by','Payment method','Split','Shares (name: amount, paid back?)']];
+  [...p.expenses].sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
+    const adj = (e.adjustments||[]).map(a=>`${a.sign}${a.percent}%${a.label?' '+a.label:''}`).join(', ');
+    const shares = Object.entries(e.shares||{}).map(([mid,info])=>`${memberName(mid)}: ${fmt(info.amount)}${info.settled?' (paid back)':''}`).join('; ');
+    expenseRows.push([e.date, e.item, e.category, e.total, adj, memberName(e.payerId), e.paymentMethod, e.splitType, shares]);
+  });
+
+  const summaryRows = [['Member','Paid upfront','Owed','Net balance','Status']];
+  p.members.forEach(m=>{
+    const b = balances[m.id];
+    const net = (b.receivable||0) - (b.owed||0);
+    const status = net > 0.005 ? 'Should receive' : (net < -0.005 ? 'Owes' : 'Settled up');
+    summaryRows.push([m.name, fmt(b.paidUpfront), fmt(b.owed), fmt(net), status]);
+  });
+  summaryRows.push([]);
+  summaryRows.push(['Suggested settlements']);
+  if(settlement.length){
+    settlement.forEach(t=> summaryRows.push([`${t.from} pays ${t.to}`, fmt(t.amount)]));
+  } else {
+    summaryRows.push(['Everyone is settled up']);
+  }
+
+  const catRows = [['Category','Total','% of total']];
+  const total = p.expenses.reduce((s,e)=>s+e.total,0);
+  Object.entries(catTotals).sort((a,b)=>b[1]-a[1]).forEach(([cat,amt])=>{
+    catRows.push([cat, fmt(amt), total ? Math.round(amt/total*1000)/10 + '%' : '0%']);
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(expenseRows), 'Expenses');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryRows), 'Summary');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(catRows), 'Categories');
+  const safeName = p.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  XLSX.writeFile(wb, `tripsplit-${safeName}-${todayStr()}.xlsx`);
+  showExportImportMessage('Excel report downloaded.', false);
+}
+
+function showInputModal(title, placeholder, onConfirm){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>${escapeHtml(title)}</h3>
+      <input type="text" id="modalInput" placeholder="${escapeHtml(placeholder)}" style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:14px;">
+      <div class="row" style="justify-content:flex-end;">
+        <button class="btn secondary" id="modalCancel">Cancel</button>
+        <button class="btn" id="modalOk">Save</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const input = overlay.querySelector('#modalInput');
+  input.focus();
+  input.addEventListener('keydown', e=>{ if(e.key==='Enter') confirmAction(); });
+  function confirmAction(){ const val = input.value; document.body.removeChild(overlay); onConfirm(val); }
+  overlay.querySelector('#modalOk').addEventListener('click', confirmAction);
+  overlay.querySelector('#modalCancel').addEventListener('click', ()=> document.body.removeChild(overlay));
+}
+
+
+
+function showConfirmModal(message, onConfirm){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>Are you sure?</h3>
+      <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px;">${escapeHtml(message)}</p>
+      <div class="row" style="justify-content:flex-end;">
+        <button class="btn secondary" id="modalCancel">Cancel</button>
+        <button class="btn" id="modalOk" style="background:var(--error);border-color:var(--error);">Confirm</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#modalOk').addEventListener('click', async ()=>{ document.body.removeChild(overlay); await onConfirm(); });
+  overlay.querySelector('#modalCancel').addEventListener('click', ()=> document.body.removeChild(overlay));
+}
+
+function showDeleteTripModal(project){
+  showConfirmModal(
+    `This permanently deletes "${project.name}" — every expense, member, and setting on this device. This cannot be undone. Continue?`,
+    ()=> showTypeToConfirmDeleteModal(project)
+  );
+}
+
+function showTypeToConfirmDeleteModal(project){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3 style="color:var(--error);">Last check</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">To confirm, type the trip's name exactly as shown, then delete it.</p>
+      <p style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:10px;">${escapeHtml(project.name)}</p>
+      <input type="text" id="confirmNameInput" placeholder="Type the trip name here" style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:14px;">
+      <div class="row" style="justify-content:flex-end;">
+        <button class="btn secondary" id="confirmCancel">Cancel</button>
+        <button class="btn danger-solid" id="confirmDelete" disabled style="opacity:0.5;cursor:not-allowed;">Delete permanently</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const input = overlay.querySelector('#confirmNameInput');
+  const deleteBtn = overlay.querySelector('#confirmDelete');
+  input.focus();
+  input.addEventListener('input', ()=>{
+    const match = input.value.trim() === project.name.trim();
+    deleteBtn.disabled = !match;
+    deleteBtn.style.opacity = match ? '1' : '0.5';
+    deleteBtn.style.cursor = match ? 'pointer' : 'not-allowed';
+  });
+  deleteBtn.addEventListener('click', async ()=>{
+    if(input.value.trim() !== project.name.trim()) return;
+    document.body.removeChild(overlay);
+    await deleteProjectPermanently(project.id);
+  });
+  overlay.querySelector('#confirmCancel').addEventListener('click', ()=> document.body.removeChild(overlay));
+}
+
+async function init(){
+  await loadProjects();
+  if(state.projects.length) await loadProject(state.projects[0].id);
+  render();
+}
+init();
+})();
+</script>
+</body>
+</html>
