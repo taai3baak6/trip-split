@@ -110,6 +110,19 @@
   .adjustment-row{display:flex;align-items:center;gap:8px;padding:5px 0;}
   .adjustment-row input[type="number"], .adjustment-row input[type="text"]{padding:7px 8px;border:1px solid var(--line);border-radius:6px;}
   .adjustment-row .toggle-btn{border-radius:6px;font-size:14px;}
+  .item-line-row{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;background:var(--paper);}
+  .item-line-top{display:flex;gap:8px;margin-bottom:8px;}
+  .item-line-top input[type="text"]{flex:1;min-width:0;padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;}
+  .item-line-top input[type="number"]{width:90px;flex:0 0 90px;padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;}
+  .item-chip-row{display:flex;flex-wrap:wrap;gap:6px;}
+  .item-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;border:1px solid var(--line);background:#fff;font-size:12px;cursor:pointer;color:var(--text-muted);}
+  .item-chip input{display:none;}
+  .item-chip.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .filter-bar{padding:14px 16px;margin-bottom:14px;}
+  .filter-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+  .filter-field{display:flex;flex-direction:column;gap:4px;min-width:120px;flex:1;}
+  .filter-field label{font-size:11px;color:var(--text-muted);font-weight:500;}
+  .filter-field input, .filter-field select{padding:7px 8px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:#fff;}
   .split-summary{ display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;margin-top:6px; border-top:1px solid var(--line);font-size:13px;font-weight:600; }
   .banner{padding:10px 12px;border-radius:8px;font-size:13px;margin:10px 0;font-weight:500;}
   .banner.error{background:var(--error-bg);color:var(--error);}
@@ -185,7 +198,7 @@
 <div class="app" id="app">
   <div class="loading" id="loading">Loading your trips...</div>
 </div>
-<footer class="credit"><span class="credit-name">© 2026</span><span class="credit-dot">•</span><span class="credit-handle">taai3baak6 All rights reserved.</span></footer>
+<footer class="credit"><span class="credit-name">太白</span><span class="credit-dot">•</span><span class="credit-handle">taai3baak6</span></footer>
 
 <!-- Only used for the optional "Export to Excel" button. deferred so it never blocks the app
      from loading when offline — everything else in this file works with zero internet access. -->
@@ -206,7 +219,9 @@ let state = {
   editingExpenseId: null,
   formError: '',
   draft: null,
-  joinError: ''
+  joinError: '',
+  expenseFilters: { date:'', category:'', payerId:'', status:'' },
+  summaryFilters: { date:'', category:'' }
 };
 
 async function safeGet(key){
@@ -266,6 +281,7 @@ function normalizeProject(p){
       else { shares[mid] = {amount: v.amount||0, settled: !!v.settled}; }
     });
     ne.shares = shares;
+    if(ne.splitType === 'items' && !Array.isArray(ne.items)) ne.items = [];
     delete ne.subtotal;
     delete ne.baseShares;
     return ne;
@@ -284,6 +300,8 @@ async function loadProject(id){
     state.currentProject = null;
   }
   state.currentProjectId = id;
+  state.expenseFilters = { date:'', category:'', payerId:'', status:'' };
+  state.summaryFilters = { date:'', category:'' };
 }
 async function saveCurrentProject(){
   if(state.currentProjectId) await safeSet('project:'+state.currentProjectId, state.currentProject, true);
@@ -326,7 +344,8 @@ function freshDraft(){
     paymentMethod: (state.currentProject.paymentMethods[0]) || 'Cash',
     splitType: 'equal',
     includedMembers: included,
-    customShares: {}
+    customShares: {},
+    items: []
   };
 }
 
@@ -359,20 +378,28 @@ function draftFromExpense(e){
     paymentMethod: e.paymentMethod,
     splitType: e.splitType,
     includedMembers: included,
-    customShares
+    customShares,
+    items: (e.items||[]).map(it=>({...it, memberIds: [...(it.memberIds||[])]}))
   };
 }
 
 // For custom split: customShares holds each person's raw item amount (as it appears on the
-// receipt, before any adjustments). Each adjustment percentage is then applied per person, so
-// someone who ordered less also carries less of a service charge (or a bigger cut of a discount).
-function computeFinalShares(total, adjustments, splitType, memberIds, customShares){
+// receipt, before any adjustments). For itemized split: items holds receipt line items, each
+// shared equally among whichever people were ticked for that particular line — the app works out
+// each person's raw total from that automatically. Either way, adjustments are then applied per
+// person, so someone who ordered less also carries less of a service charge (or discount).
+function computeFinalShares(total, adjustments, splitType, memberIds, customShares, items){
   const multiplier = multiplierForAdjustments(adjustments);
   const shares = {};
   if(splitType==='equal'){
     const n = memberIds.length;
     const per = n ? Math.round((total/n + Number.EPSILON)*100)/100 : 0;
     memberIds.forEach(id=> shares[id] = {amount: per, settled:false});
+  } else if(splitType==='items'){
+    const raw = rawSharesFromItems(items, memberIds);
+    memberIds.forEach(id=>{
+      shares[id] = {amount: Math.round(((raw[id]||0)*multiplier + Number.EPSILON)*100)/100, settled:false};
+    });
   } else {
     memberIds.forEach(id=>{
       const raw = parseFloat(customShares[id])||0;
@@ -384,10 +411,29 @@ function computeFinalShares(total, adjustments, splitType, memberIds, customShar
 function customSum(memberIds, customShares){
   return memberIds.reduce((s,id)=> s + (parseFloat(customShares[id])||0), 0);
 }
-// What the entered raw item amounts imply the total should be, once all adjustments are applied.
-function customImpliedTotal(memberIds, customShares, adjustments){
+// Splits each item line's amount equally among whichever included members were ticked for it,
+// then sums up each person's total across all lines.
+function rawSharesFromItems(items, includedIds){
+  const raw = {};
+  includedIds.forEach(id=> raw[id] = 0);
+  (items||[]).forEach(item=>{
+    const amt = parseFloat(item.amount)||0;
+    const participants = (item.memberIds||[]).filter(id=>includedIds.includes(id));
+    if(participants.length===0 || amt===0) return;
+    const per = amt/participants.length;
+    participants.forEach(id=>{ raw[id] = (raw[id]||0) + per; });
+  });
+  return raw;
+}
+function itemsRawSum(items){
+  return (items||[]).reduce((s,item)=> s + (parseFloat(item.amount)||0), 0);
+}
+// What the entered raw amounts (custom per-person entries, or itemized line items) imply the
+// total should be, once all adjustments are applied.
+function customImpliedTotal(memberIds, customShares, adjustments, splitType, items){
   const multiplier = multiplierForAdjustments(adjustments);
-  return customSum(memberIds, customShares) * multiplier;
+  const rawSum = splitType==='items' ? itemsRawSum(items) : customSum(memberIds, customShares);
+  return rawSum * multiplier;
 }
 function estimatedPreAdjustmentAmount(total, adjustments){
   const multiplier = multiplierForAdjustments(adjustments);
@@ -579,6 +625,23 @@ function renderAddExpenseTab(p){
       <button type="button" class="icon-btn" data-adj-remove="${a.id}">Remove</button>
     </div>`).join('');
 
+  const includedMembersList = p.members.filter(m => d.includedMembers[m.id] !== false);
+  const itemRowsHtml = d.items.map(it=>{
+    const chips = includedMembersList.map(m=>{
+      const checked = (it.memberIds||[]).includes(m.id);
+      return `<label class="item-chip ${checked?'active':''}"><input type="checkbox" data-item-member="${it.id}:${m.id}" ${checked?'checked':''}>${escapeHtml(m.name)}</label>`;
+    }).join('') || `<span class="hint">Tick people in "Who is included" above first.</span>`;
+    return `
+    <div class="item-line-row" data-item-id="${it.id}">
+      <div class="item-line-top">
+        <input type="text" data-item-name="${it.id}" value="${escapeHtml(it.name||'')}" placeholder="Item name (optional)">
+        <input type="number" step="0.01" min="0" data-item-amount="${it.id}" value="${it.amount}" placeholder="Amount">
+        <button type="button" class="icon-btn" data-item-remove="${it.id}">Remove</button>
+      </div>
+      <div class="item-chip-row">${chips}</div>
+    </div>`;
+  }).join('');
+
   const splitMembersHtml = p.members.map(m=>{
     const val = d.customShares[m.id] !== undefined ? d.customShares[m.id] : '';
     const isIncluded = d.includedMembers[m.id] !== false;
@@ -588,7 +651,7 @@ function renderAddExpenseTab(p){
         <input type="checkbox" data-include-member="${m.id}" ${isIncluded?'checked':''} aria-label="Include ${escapeHtml(m.name)} in this expense">
       </label>
       <span class="name">${escapeHtml(m.name)}</span>
-      <input type="number" step="0.01" min="0" data-share-member="${m.id}" value="${val}" placeholder="0" ${(d.splitType==='equal'||!isIncluded)?'disabled':''}>
+      ${d.splitType==='items' ? '' : `<input type="number" step="0.01" min="0" data-share-member="${m.id}" value="${val}" placeholder="0" ${(d.splitType==='equal'||!isIncluded)?'disabled':''}>`}
     </div>`;
   }).join('');
 
@@ -628,7 +691,7 @@ function renderAddExpenseTab(p){
       </div>
     </div>
     <div class="field">
-      <label>Adjustments (service charge, tax, discount... — only affects how the custom split is divided, never the total above)</label>
+      <label>Adjustments (service charge, tax, discount... — only affects how the custom/itemized split is divided, never the total above)</label>
       ${adjustmentRowsHtml}
       <button type="button" class="btn secondary small" id="addAdjustmentBtn" style="margin-top:${d.adjustments.length?'8px':'0'};">+ Add adjustment</button>
       ${preAdj!==null ? `<div class="hint" id="preAdjHint">≈ ${curSym()}${fmt(preAdj)} before these adjustments</div>` : `<div class="hint" id="preAdjHint"></div>`}
@@ -649,13 +712,20 @@ function renderAddExpenseTab(p){
       <div class="toggle-group">
         <div class="toggle-btn ${d.splitType==='equal'?'active':''}" data-toggle="splitType" data-value="equal">Split equally</div>
         <div class="toggle-btn ${d.splitType==='custom'?'active':''}" data-toggle="splitType" data-value="custom">Custom amounts</div>
+        <div class="toggle-btn ${d.splitType==='items'?'active':''}" data-toggle="splitType" data-value="items">By item</div>
       </div>
     </div>
     <div class="field">
-      <label>Who is included ${d.splitType==='custom'?(d.adjustments.length===0 ? '(enter what each person actually owes — must add up to the total)' : '(enter each person\u2019s item amount from the receipt, before adjustments — they\u2019ll be applied automatically per person)'):''}</label>
+      <label>Who is included ${d.splitType==='custom'?(d.adjustments.length===0 ? '(enter what each person actually owes — must add up to the total)' : '(enter each person\u2019s item amount from the receipt, before adjustments — they\u2019ll be applied automatically per person)') : d.splitType==='items' ? '(tick everyone who was there at all — you\u2019ll assign specific items to specific people below)' : ''}</label>
       ${splitMembersHtml}
-      ${d.splitType==='custom' ? `<div class="split-summary"><span id="splitRemaining">Remaining: ${curSym()}0</span><button type="button" class="btn secondary small" id="autoBalanceBtn" style="display:none;">Auto-fill % to match</button></div>` : ''}
+      ${(d.splitType==='custom'||d.splitType==='items') ? `<div class="split-summary"><span id="splitRemaining">Remaining: ${curSym()}0</span><button type="button" class="btn secondary small" id="autoBalanceBtn" style="display:none;">Auto-fill % to match</button></div>` : ''}
     </div>
+    ${d.splitType==='items' ? `
+    <div class="field">
+      <label>Receipt items (before adjustments) — tick who shares each line</label>
+      ${itemRowsHtml}
+      <button type="button" class="btn secondary small" id="addItemLineBtn" style="margin-top:${d.items.length?'8px':'0'};">+ Add item</button>
+    </div>` : ''}
     ${state.formError ? `<div class="banner error">${escapeHtml(state.formError)}</div>` : ''}
     <div class="row" style="margin-top:6px;">
       <button class="btn" id="saveExpenseBtn">${state.editingExpenseId?'Save changes':'Add expense'}</button>
@@ -666,8 +736,54 @@ function renderAddExpenseTab(p){
 
 function renderExpensesTab(p){
   if(p.expenses.length===0) return `<div class="card"><p class="empty-hint">No expenses logged yet.</p></div>`;
-  const sorted = [...p.expenses].sort((a,b)=> b.date.localeCompare(a.date));
   const memberName = id => (p.members.find(m=>m.id===id)||{}).name || '—';
+  const f = state.expenseFilters;
+
+  const catOpts = p.categories.map(c=>`<option value="${escapeHtml(c)}" ${f.category===c?'selected':''}>${escapeHtml(c)}</option>`).join('');
+  const payerOpts = p.members.map(m=>`<option value="${m.id}" ${f.payerId===m.id?'selected':''}>${escapeHtml(m.name)}</option>`).join('');
+
+  const filterBar = `
+  <div class="card filter-bar">
+    <div class="filter-row">
+      <div class="filter-field">
+        <label>Date</label>
+        <input type="date" id="filterDate" value="${f.date}">
+      </div>
+      <div class="filter-field">
+        <label>Category</label>
+        <select id="filterCategory"><option value="" ${!f.category?'selected':''}>All categories</option>${catOpts}</select>
+      </div>
+      <div class="filter-field">
+        <label>Paid by</label>
+        <select id="filterPayer"><option value="" ${!f.payerId?'selected':''}>Anyone</option>${payerOpts}</select>
+      </div>
+      <div class="filter-field">
+        <label>Status</label>
+        <select id="filterStatus">
+          <option value="" ${!f.status?'selected':''}>All</option>
+          <option value="unpaid" ${f.status==='unpaid'?'selected':''}>Unpaid only</option>
+        </select>
+      </div>
+      <button type="button" class="btn secondary small" id="clearExpenseFiltersBtn">Clear filters</button>
+    </div>
+  </div>`;
+
+  const filtered = p.expenses.filter(e=>{
+    if(f.date && e.date !== f.date) return false;
+    if(f.category && e.category !== f.category) return false;
+    if(f.payerId && e.payerId !== f.payerId) return false;
+    if(f.status === 'unpaid'){
+      const hasUnpaid = Object.entries(e.shares||{}).some(([mid,info])=> mid!==e.payerId && !info.settled);
+      if(!hasUnpaid) return false;
+    }
+    return true;
+  });
+
+  if(filtered.length===0){
+    return filterBar + `<div class="card"><p class="empty-hint">No expenses match these filters.</p></div>`;
+  }
+
+  const sorted = [...filtered].sort((a,b)=> b.date.localeCompare(a.date));
 
   const cards = sorted.map(e=>{
     const payerName = memberName(e.payerId);
@@ -683,6 +799,11 @@ function renderExpensesTab(p){
         ? `<span class="badge service">≈ ${homeSym()}${fmt(e.total*r.rate)}</span>`
         : `<span class="badge pending">Rate pending</span>`;
     }
+    const shareBreakdown = includedIds.map(mid=>{
+      const amt = e.shares[mid].amount;
+      const label = mid===e.payerId ? `${escapeHtml(memberName(mid))} (paid)` : escapeHtml(memberName(mid));
+      return `${label}: ${curSym()}${fmt(amt)}`;
+    }).join(' · ');
     const paidBackHtml = includedIds.filter(mid=>mid!==e.payerId).map(mid=>{
       const info = e.shares[mid];
       return `
@@ -705,7 +826,8 @@ function renderExpensesTab(p){
         <span class="cat-pill">${escapeHtml(e.category)}</span>
         ${adjBadge} ${methodBadge} ${rateBadge}
         <span>Paid by <b>${escapeHtml(payerName)}</b></span>
-        <span>· Split: ${e.splitType==='equal'?'equal':'custom'} between ${includedIds.map(memberName).join(', ')}</span>
+        <span>· ${e.splitType==='equal'?'Equal split':e.splitType==='items'?'Itemized split':'Custom split'}</span>
+        <span style="display:block;width:100%;color:var(--text-muted);margin-top:2px;">${shareBreakdown}</span>
       </div>
       ${paidBackHtml ? `<div class="paid-back-list">${paidBackHtml}</div>` : ''}
       <div class="row-actions">
@@ -715,7 +837,7 @@ function renderExpensesTab(p){
     </div>`;
   }).join('');
 
-  return `<div>${cards}</div>`;
+  return filterBar + `<div class="hint" style="margin:0 0 10px;">Showing ${filtered.length} of ${p.expenses.length} expenses</div><div>${cards}</div>`;
 }
 
 function renderSettingsTab(p){
@@ -816,14 +938,38 @@ function renderSettingsTab(p){
 
 function renderSummaryTab(p){
   if(p.expenses.length===0) return `<div class="card"><p class="empty-hint">Add some expenses to see the summary.</p></div>`;
-  const balances = computeBalances(p);
-  const total = p.expenses.reduce((s,e)=>s+e.total,0);
-  const settlement = computeSettlement(p);
-  const catTotals = categoryTotals(p);
+
+  const f = state.summaryFilters;
+  const catOptsS = p.categories.map(c=>`<option value="${escapeHtml(c)}" ${f.category===c?'selected':''}>${escapeHtml(c)}</option>`).join('');
+  const filterBar = `
+  <div class="card filter-bar">
+    <div class="filter-row">
+      <div class="filter-field"><label>Date</label><input type="date" id="summaryFilterDate" value="${f.date}"></div>
+      <div class="filter-field"><label>Category</label><select id="summaryFilterCategory"><option value="" ${!f.category?'selected':''}>All categories</option>${catOptsS}</select></div>
+      <button type="button" class="btn secondary small" id="clearSummaryFiltersBtn">Clear filters</button>
+    </div>
+  </div>`;
+
+  const filteredExpenses = p.expenses.filter(e=>{
+    if(f.date && e.date !== f.date) return false;
+    if(f.category && e.category !== f.category) return false;
+    return true;
+  });
+
+  if(filteredExpenses.length === 0){
+    return filterBar + `<div class="card"><p class="empty-hint">No expenses match these filters.</p></div>`;
+  }
+
+  const view = Object.assign({}, p, {expenses: filteredExpenses});
+  const balances = computeBalances(view);
+  const total = filteredExpenses.reduce((s,e)=>s+e.total,0);
+  const settlement = computeSettlement(view);
+  const catTotals = categoryTotals(view);
   const showHome = needsConversion(p) || sameCurrency(p);
 
-  const pendingRates = needsConversion(p) ? p.expenses.filter(e => !findRate(p, e.payerId, e.date, e.paymentMethod)) : [];
+  const pendingRates = needsConversion(p) ? filteredExpenses.filter(e => !findRate(p, e.payerId, e.date, e.paymentMethod)) : [];
   const anyExactOrApprox = showHome && p.members.some(m => balances[m.id].hasHome);
+  const filterNote = (f.date || f.category) ? `<div class="hint" style="margin:-4px 0 14px;">Showing ${filteredExpenses.length} of ${p.expenses.length} expenses</div>` : '';
 
   const balanceCards = p.members.map(m=>{
     const b = balances[m.id];
@@ -864,10 +1010,10 @@ function renderSummaryTab(p){
     <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">Add these rates in Settings — until then, amounts affecting these expenses use an average of your recorded rates.</p>
   </div>` : '';
 
-  return `
+  return filterBar + filterNote + `
   <div class="stat-grid">
     <div class="stat-card"><div class="label">Total spent</div><div class="value">${curSym()}${fmt(total)}</div></div>
-    <div class="stat-card"><div class="label">Expenses logged</div><div class="value">${p.expenses.length}</div></div>
+    <div class="stat-card"><div class="label">Expenses logged</div><div class="value">${filteredExpenses.length}</div></div>
   </div>
   <div class="card">
     <h3 style="margin-bottom:12px;">Who owes what</h3>
@@ -879,8 +1025,7 @@ function renderSummaryTab(p){
     ${convNote}
   </div>
   ${pendingHtml}
-  <div class="card">
-    <h3 style="margin-bottom:4px;">Spending by category</h3>
+  <div class="card">    <h3 style="margin-bottom:4px;">Spending by category</h3>
     <div class="legend">${legend}</div>
     <div style="max-width:260px;margin:10px auto 0;">${buildCategoryPieSVG(catEntries)}</div>
   </div>`;
@@ -947,6 +1092,19 @@ function attachContentEvents(){
   if(state.activeTab === 'add') attachAddExpenseEvents(p);
   if(state.activeTab === 'expenses') attachExpensesEvents(p);
   if(state.activeTab === 'settings') attachSettingsEvents(p);
+  if(state.activeTab === 'summary') attachSummaryEvents(p);
+}
+
+function attachSummaryEvents(p){
+  const filterDate = document.getElementById('summaryFilterDate');
+  if(filterDate) filterDate.addEventListener('change', ()=>{ state.summaryFilters.date = filterDate.value; render(); });
+  const filterCategory = document.getElementById('summaryFilterCategory');
+  if(filterCategory) filterCategory.addEventListener('change', ()=>{ state.summaryFilters.category = filterCategory.value; render(); });
+  const clearBtn = document.getElementById('clearSummaryFiltersBtn');
+  if(clearBtn) clearBtn.addEventListener('click', ()=>{
+    state.summaryFilters = { date:'', category:'' };
+    render();
+  });
 }
 
 function attachMembersEvents(p){
@@ -1074,6 +1232,43 @@ function attachAddExpenseEvents(p){
   if(autoBalanceBtn) autoBalanceBtn.addEventListener('click', autoBalanceAdjustment);
   updateRemainingDisplay();
 
+  const addItemLineBtn = document.getElementById('addItemLineBtn');
+  if(addItemLineBtn) addItemLineBtn.addEventListener('click', ()=>{
+    const includedIds = p.members.map(m=>m.id).filter(id => d.includedMembers[id] !== false);
+    d.items.push({id: uid(), name:'', amount:'', memberIds:[...includedIds]});
+    render();
+  });
+  document.querySelectorAll('[data-item-remove]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      d.items = d.items.filter(it=>it.id!==btn.dataset.itemRemove);
+      render();
+    });
+  });
+  document.querySelectorAll('[data-item-name]').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      const it = d.items.find(x=>x.id===inp.dataset.itemName);
+      if(it) it.name = inp.value;
+    });
+  });
+  document.querySelectorAll('[data-item-amount]').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      const it = d.items.find(x=>x.id===inp.dataset.itemAmount);
+      if(it) it.amount = inp.value;
+      updateRemainingDisplay();
+    });
+  });
+  document.querySelectorAll('[data-item-member]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const [itemId, memberId] = cb.dataset.itemMember.split(':');
+      const it = d.items.find(x=>x.id===itemId);
+      if(!it) return;
+      it.memberIds = it.memberIds || [];
+      if(cb.checked){ if(!it.memberIds.includes(memberId)) it.memberIds.push(memberId); }
+      else { it.memberIds = it.memberIds.filter(id=>id!==memberId); }
+      render();
+    });
+  });
+
   const saveBtn = document.getElementById('saveExpenseBtn');
   if(saveBtn) saveBtn.addEventListener('click', onSaveExpense);
   const cancelBtn = document.getElementById('cancelEditBtn');
@@ -1093,11 +1288,11 @@ function updatePreAdjHint(){
 }
 function updateRemainingDisplay(){
   const d = state.draft;
-  if(d.splitType !== 'custom') return;
+  if(d.splitType !== 'custom' && d.splitType !== 'items') return;
   const p = state.currentProject;
   const total = parseFloat(d.total) || 0;
   const includedIds = p.members.map(m=>m.id).filter(id => d.includedMembers[id] !== false);
-  const implied = customImpliedTotal(includedIds, d.customShares, d.adjustments);
+  const implied = customImpliedTotal(includedIds, d.customShares, d.adjustments, d.splitType, d.items);
   const remaining = Math.round((total - implied + Number.EPSILON)*100)/100;
   const el = document.getElementById('splitRemaining');
   if(el){
@@ -1106,7 +1301,7 @@ function updateRemainingDisplay(){
   }
   const balanceBtn = document.getElementById('autoBalanceBtn');
   if(balanceBtn){
-    const rawSum = customSum(includedIds, d.customShares);
+    const rawSum = d.splitType==='items' ? itemsRawSum(d.items) : customSum(includedIds, d.customShares);
     balanceBtn.style.display = (Math.abs(remaining) >= 0.005 && rawSum > 0 && total > 0) ? 'inline-block' : 'none';
   }
 }
@@ -1119,7 +1314,7 @@ function autoBalanceAdjustment(){
   const p = state.currentProject;
   const total = parseFloat(d.total) || 0;
   const includedIds = p.members.map(m=>m.id).filter(id => d.includedMembers[id] !== false);
-  const rawSum = customSum(includedIds, d.customShares);
+  const rawSum = d.splitType==='items' ? itemsRawSum(d.items) : customSum(includedIds, d.customShares);
   if(rawSum <= 0 || total <= 0) return;
 
   const targetMultiplier = total / rawSum;
@@ -1165,8 +1360,17 @@ async function onSaveExpense(){
   if(memberIds.length === 0){
     state.formError = 'Select at least one person this expense applies to.'; render(); return;
   }
-  if(d.splitType === 'custom'){
-    const implied = customImpliedTotal(memberIds, d.customShares, d.adjustments);
+  if(d.splitType === 'items'){
+    const emptyItem = d.items.find(it => !it.amount || parseFloat(it.amount) <= 0 || !(it.memberIds||[]).length);
+    if(d.items.length === 0){
+      state.formError = 'Add at least one item line, or switch to Equal / Custom split.'; render(); return;
+    }
+    if(emptyItem){
+      state.formError = 'Every item needs an amount and at least one person selected.'; render(); return;
+    }
+  }
+  if(d.splitType === 'custom' || d.splitType === 'items'){
+    const implied = customImpliedTotal(memberIds, d.customShares, d.adjustments, d.splitType, d.items);
     const diff = Math.round((total - implied + Number.EPSILON)*100)/100;
     if(Math.abs(diff) >= 0.01){
       state.formError = `The item amounts you entered${d.adjustments.length ? ' (after applying the adjustments)' : ''} don't add up to the total. Off by ${curSym()}${fmt(Math.abs(diff))}. Please adjust before saving.`;
@@ -1174,7 +1378,7 @@ async function onSaveExpense(){
     }
   }
 
-  const shares = computeFinalShares(total, d.adjustments, d.splitType, memberIds, d.customShares);
+  const shares = computeFinalShares(total, d.adjustments, d.splitType, memberIds, d.customShares, d.items);
 
   if(state.editingExpenseId){
     const existing = p.expenses.find(e=>e.id===state.editingExpenseId);
@@ -1186,6 +1390,7 @@ async function onSaveExpense(){
     date, item, category, total, payerId,
     adjustments: d.adjustments.map(a=>({id:a.id, sign:a.sign, percent: parseFloat(a.percent)||0, label:a.label||''})),
     paymentMethod: d.paymentMethod, splitType: d.splitType,
+    items: d.splitType==='items' ? d.items.map(it=>({id:it.id, name:it.name||'', amount: parseFloat(it.amount)||0, memberIds:[...(it.memberIds||[])]})) : undefined,
     shares
   };
 
@@ -1204,6 +1409,20 @@ async function onSaveExpense(){
 }
 
 function attachExpensesEvents(p){
+  const filterDate = document.getElementById('filterDate');
+  if(filterDate) filterDate.addEventListener('change', ()=>{ state.expenseFilters.date = filterDate.value; render(); });
+  const filterCategory = document.getElementById('filterCategory');
+  if(filterCategory) filterCategory.addEventListener('change', ()=>{ state.expenseFilters.category = filterCategory.value; render(); });
+  const filterPayer = document.getElementById('filterPayer');
+  if(filterPayer) filterPayer.addEventListener('change', ()=>{ state.expenseFilters.payerId = filterPayer.value; render(); });
+  const filterStatus = document.getElementById('filterStatus');
+  if(filterStatus) filterStatus.addEventListener('change', ()=>{ state.expenseFilters.status = filterStatus.value; render(); });
+  const clearBtn = document.getElementById('clearExpenseFiltersBtn');
+  if(clearBtn) clearBtn.addEventListener('click', ()=>{
+    state.expenseFilters = { date:'', category:'', payerId:'', status:'' };
+    render();
+  });
+
   document.querySelectorAll('[data-edit-expense]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const e = p.expenses.find(x=>x.id===btn.dataset.editExpense);
